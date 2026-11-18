@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Equipment Vibration Measurement Log</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      opacity: 1;
+    }
+    body.pdf-exporting .no-print {
+      display: none !important;
+    }
+    body.pdf-exporting {
+      background: #ffffff !important;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: #ffffff !important;
+      }
+      .print-card {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 no-print">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h3l2.5-6 4 12 3-8 2 4H21" />
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-base sm:text-lg font-bold text-slate-900 leading-tight">Vibration Measurement Log</h1>
+          <p class="text-xs text-slate-500">Equipment bearing readings (H / V / A)</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-1.5 bg-slate-100 rounded-lg px-2.5 py-1.5 border border-slate-200">
+          <label for="unitSelect" class="text-xs font-medium text-slate-600">Unit:</label>
+          <select id="unitSelect" class="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer">
+            <option value="mm/s">mm/s (RMS)</option>
+            <option value="in/s">in/s (Peak)</option>
+            <option value="µm">µm (Disp)</option>
+            <option value="g">g (Accel)</option>
+          </select>
+        </div>
+
+        <button id="addEquipmentBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs sm:text-sm font-medium transition shadow-sm cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Add Equipment</span>
+        </button>
+
+        <button id="saveRecordBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-xs sm:text-sm font-medium transition shadow-sm cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>Save Record</span>
+        </button>
+
+        <button id="exportExcelBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-medium transition shadow-sm cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+          </svg>
+          <span>Export Excel</span>
+        </button>
+
+        <button id="exportPdfBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 active:bg-slate-950 text-white text-xs sm:text-sm font-medium transition shadow-sm cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3M6 20h12a2 2 0 002-2V8l-6-6H6a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          <span>Download PDF</span>
+        </button>
+
+        <button id="exportImageBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 active:bg-sky-800 text-white text-xs sm:text-sm font-medium transition shadow-sm cursor-pointer">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>Download Image</span>
+        </button>
+
+        <button id="clearAllBtn" type="button" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-red-50 text-red-600 border border-slate-300 hover:border-red-200 text-xs sm:text-sm font-medium transition cursor-pointer">
+          <span>Clear</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="reportContent" class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+    <!-- Metadata / Quick Info Bar -->
+    <section class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm flex flex-wrap items-center justify-between gap-4">
+      <div class="flex flex-wrap items-center gap-4">
+        <div class="w-full sm:w-48">
+          <label for="dateInput" class="block text-xs font-medium text-slate-500 mb-1">Measurement Date</label>
+          <input id="dateInput" type="date" class="w-full px-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none" />
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-4 text-xs text-slate-600 bg-slate-50 px-3.5 py-2 rounded-lg border border-slate-200">
+        <div>
+          <span class="text-slate-400 block">Equipments</span>
+          <span id="equipmentCountStat" class="font-semibold text-slate-800 text-sm">1</span>
+        </div>
+        <div class="h-6 w-px bg-slate-200"></div>
+        <div>
+          <span class="text-slate-400 block">Filled Readings</span>
+          <span id="readingCountStat" class="font-semibold text-slate-800 text-sm">0</span>
+        </div>
+        <div class="h-6 w-px bg-slate-200"></div>
+        <div>
+          <span class="text-slate-400 block">Overall Peak</span>
+          <span id="overallPeakStat" class="font-semibold text-amber-700 text-sm">—</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Equipment List Container -->
+    <div id="equipmentContainer" class="space-y-6"></div>
+
+    <!-- Bottom Add Equipment CTA -->
+    <div class="flex justify-center pt-2 no-print">
+      <button id="bottomAddEquipmentBtn" type="button" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-slate-300 hover:border-blue-400 hover:bg-blue-50/50 text-slate-600 hover:text-blue-700 text-sm font-medium transition cursor-pointer">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>Add Another Equipment</span>
+      </button>
+    </div>
+
+    <!-- Saved Measurement Records Section -->
+    <section id="recordsSection" class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden no-print">
+      <div class="px-5 py-4 bg-slate-50/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-sm sm:text-base font-bold text-slate-900">Saved Measurement Records</h2>
+          <p class="text-xs text-slate-500">Stored locally in your browser for quick recall</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <input id="recordSearchInput" type="text" placeholder="Filter by equipment or date..." class="px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none w-48 sm:w-56" />
+        </div>
+      </div>
+      <div id="recordsList" class="p-4"></div>
+    </section>
+
+  </main>
+
+  <!-- Add Vibration Field Modal -->
+  <div id="addPointModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-[1px] p-4" role="dialog" aria-modal="true" aria-labelledby="addPointModalTitle">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-md p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h2 id="addPointModalTitle" class="text-base font-bold text-slate-900">Add Vibration Field</h2>
+        <button id="closePointModalBtn" type="button" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer" aria-label="Close modal">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <div>
+        <p class="text-xs font-medium text-slate-500 mb-2">Quick Select Common Points</p>
+        <div id="quickPointChips" class="flex flex-wrap gap-2">
+          <button type="button" data-point="PDE" class="quick-chip px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 transition cursor-pointer">+ PDE</button>
+          <button type="button" data-point="PNDE" class="quick-chip px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 transition cursor-pointer">+ PNDE</button>
+          <button type="button" data-point="FDE" class="quick-chip px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 transition cursor-pointer">+ FDE</button>
+          <button type="button" data-point="FNDE" class="quick-chip px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 transition cursor-pointer">+ FNDE</button>
+          <button type="button" data-point="GDE" class="quick-chip px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 transition cursor-pointer">+ GDE</button>
+          <button type="button" data-point="GNDE" class="quick-chip px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-200 hover:border-blue-300 transition cursor-pointer">+ GNDE</button>
+        </div>
+      </div>
+
+      <form id="customPointForm" class="space-y-3">
+        <div>
+          <label for="customPointInput" class="block text-xs font-medium text-slate-600 mb-1">Or Enter Custom Point Name</label>
+          <input id="customPointInput" type="text" placeholder="e.g. PDE, PNDE, Outboard Bearing" class="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none" />
+        </div>
+        <div class="flex justify-end gap-2 pt-1">
+          <button id="cancelPointModalBtn" type="button" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">Cancel</button>
+          <button type="submit" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white transition cursor-pointer">Add Field</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirm Clear Modal -->
+  <div id="confirmClearModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-900/40 backdrop-blur-[1px] p-4" role="dialog" aria-modal="true" aria-labelledby="confirmClearTitle">
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-xl w-full max-w-sm p-5 space-y-4">
+      <h2 id="confirmClearTitle" class="text-base font-bold text-slate-900">Clear All Measurements?</h2>
+      <p class="text-sm text-slate-600">This will reset the form to one blank equipment entry with empty MDE and MNDE fields.</p>
+      <div class="flex justify-end gap-2">
+        <button id="cancelClearBtn" type="button" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm font-medium text-slate-600 hover:bg-slate-100 transition cursor-pointer">Cancel</button>
+        <button id="confirmClearBtn" type="button" class="px-4 py-2 rounded-lg text-xs sm:text-sm font-medium bg-red-600 hover:bg-red-700 text-white transition cursor-pointer">Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 hidden items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs sm:text-sm font-medium shadow-lg transition-opacity duration-200">
+    <span id="toastMessage"></span>
+  </div>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = 'equipment_vibration_log_v1';
+      const RECORDS_STORAGE_KEY = 'equipment_vibration_records_v1';
+
+      function uid() {
+        return 'id_' + Math.random().toString(36).slice(2, 10);
+      }
+
+      function todayISO() {
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      function createDefaultEquipment() {
+        return {
+          id: uid(),
+          name: '',
+          notes: '',
+          points: [
+            { id: uid(), label: 'MDE', horizontal: '', vertical: '', axial: '' },
+            { id: uid(), label: 'MNDE', horizontal: '', vertical: '', axial: '' }
+          ]
+        };
+      }
+
+      function createInitialState() {
+        return {
+          unit: 'mm/s',
+          date: todayISO(),
+          equipments: [createDefaultEquipment()]
+        };
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return createInitialState();
+          const parsed = JSON.parse(raw);
+          if (!parsed || !Array.isArray(parsed.equipments) || parsed.equipments.length === 0) {
+            return createInitialState();
+          }
+          return parsed;
+        } catch (e) {
+          return createInitialState();
+        }
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+          // Ignore storage quota or sandbox restrictions
+        }
+      }
+
+      function loadRecords() {
+        try {
+          const raw = localStorage.getItem(RECORDS_STORAGE_KEY);
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function saveRecords() {
+        try {
+          localStorage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(records));
+        } catch (e) {
+          // Ignore storage quota errors
+        }
+      }
+
+      let state = loadState();
+      let records = loadRecords();
+      let activeEquipmentIdForModal = null;
+      let toastTimer = null;
+
+      // DOM References
+      const equipmentContainer = document.getElementById('equipmentContainer');
+      const unitSelect = document.getElementById('unitSelect');
+      const dateInput = document.getElementById('dateInput');
+      const reportContent = document.getElementById('reportContent');
+      const equipmentCountStat = document.getElementById('equipmentCountStat');
+      const readingCountStat = document.getElementById('readingCountStat');
+      const overallPeakStat = document.getElementById('overallPeakStat');
+
+      const addEquipmentBtn = document.getElementById('addEquipmentBtn');
+      const bottomAddEquipmentBtn = document.getElementById('bottomAddEquipmentBtn');
+      const exportExcelBtn = document.getElementById('exportExcelBtn');
+      const saveRecordBtn = document.getElementById('saveRecordBtn');
+      const exportPdfBtn = document.getElementById('exportPdfBtn');
+      const exportImageBtn = document.getElementById('exportImageBtn');
+      const recordsList = document.getElementById('recordsList');
+      const recordSearchInput = document.getElementById('recordSearchInput');
+      const clearAllBtn = document.getElementById('clearAllBtn');
+
+      const addPointModal = document.getElementById('addPointModal');
+      const closePointModalBtn = document.getElementById('closePointModalBtn');
+      const cancelPointModalBtn = document.getElementById('cancelPointModalBtn');
+      const customPointForm = document.getElementById('customPointForm');
+      const customPointInput = document.getElementById('customPointInput');
+      const quickPointChips = document.getElementById('quickPointChips');
+
+      const confirmClearModal = document.getElementById('confirmClearModal');
+      const cancelClearBtn = document.getElementById('cancelClearBtn');
+      const confirmClearBtn = document.getElementById('confirmClearBtn');
+
+      const toastEl = document.getElementById('toast');
+      const toastMessageEl = document.getElementById('toastMessage');
+
+      function showToast(msg) {
+        toastMessageEl.textContent = msg;
+        toastEl.classList.remove('hidden');
+        toastEl.classList.add('flex');
+        if (toastTimer) clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toastEl.classList.add('hidden');
+          toastEl.classList.remove('flex');
+        }, 2600);
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function getOverallPeakInfo() {
+        let overall = null;
+        state.equipments.forEach((eq, idx) => {
+          const eqPeak = getEquipmentPeakInfo(eq);
+          if (eqPeak && (overall === null || eqPeak.value > overall.value)) {
+            overall = {
+              value: eqPeak.value,
+              equipmentName: (eq.name || '').trim() || `Equipment ${idx + 1}`,
+              pointLabel: eqPeak.pointLabel,
+              axisLabel: eqPeak.axisLabel
+            };
+          }
+        });
+        return overall;
+      }
+
+      function updateStats() {
+        equipmentCountStat.textContent = String(state.equipments.length);
+        let filled = 0;
+        state.equipments.forEach((eq) => {
+          eq.points.forEach((pt) => {
+            if (pt.horizontal !== '') filled++;
+            if (pt.vertical !== '') filled++;
+            if (pt.axial !== '') filled++;
+          });
+        });
+        readingCountStat.textContent = String(filled);
+        const overall = getOverallPeakInfo();
+        overallPeakStat.textContent = overall
+          ? `${overall.value} ${state.unit} (${overall.equipmentName} — ${overall.pointLabel} ${overall.axisLabel})`
+          : '—';
+      }
+
+      function getEquipmentPeakInfo(eq) {
+        let peak = null;
+        const axisNames = { horizontal: 'Horizontal', vertical: 'Vertical', axial: 'Axial' };
+        eq.points.forEach((pt) => {
+          ['horizontal', 'vertical', 'axial'].forEach((axis) => {
+            const v = parseFloat(pt[axis]);
+            if (!Number.isNaN(v)) {
+              if (peak === null || v > peak.value) {
+                peak = {
+                  value: v,
+                  pointLabel: (pt.label || '').trim() || 'Unnamed Point',
+                  axisLabel: axisNames[axis],
+                  ptId: pt.id
+                };
+              }
+            }
+          });
+        });
+        return peak;
+      }
+
+      function renderPeakBadgeHtml(eq) {
+        const peak = getEquipmentPeakInfo(eq);
+        if (!peak) {
+          return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">No readings yet</span>`;
+        }
+        return `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200"><span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>Peak: ${peak.value} ${escapeHtml(state.unit)} @ ${escapeHtml(peak.pointLabel)} (${peak.axisLabel})</span>`;
+      }
+
+      function render() {
+        unitSelect.value = state.unit;
+        dateInput.value = state.date || todayISO();
+
+        equipmentContainer.innerHTML = state.equipments.map((eq, eqIndex) => {
+          const peakBadge = renderPeakBadgeHtml(eq);
+
+          const pointsRows = eq.points.map((pt) => `
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-slate-50/80 hover:bg-slate-50 p-3 rounded-xl border border-slate-200/90 transition" data-point-id="${pt.id}">
+              <div class="sm:col-span-3 flex items-center justify-between gap-2">
+                <input
+                  type="text"
+                  value="${escapeHtml(pt.label)}"
+                  placeholder="Point (e.g. MDE)"
+                  aria-label="Vibration point name"
+                  data-action="point-label"
+                  data-eq-id="${eq.id}"
+                  data-pt-id="${pt.id}"
+                  class="w-full px-2.5 py-1.5 text-sm font-semibold text-slate-800 bg-white rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none uppercase tracking-wide"
+                />
+              </div>
+
+              <div class="sm:col-span-8 grid grid-cols-3 gap-2.5">
+                <div>
+                  <label class="block text-[11px] font-medium text-slate-500 mb-1">Horizontal (${escapeHtml(state.unit)})</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value="${escapeHtml(pt.horizontal)}"
+                    placeholder="—"
+                    aria-label="${escapeHtml(pt.label)} Horizontal vibration"
+                    data-action="axis-input"
+                    data-axis="horizontal"
+                    data-eq-id="${eq.id}"
+                    data-pt-id="${pt.id}"
+                    class="w-full px-2.5 py-1.5 text-sm text-slate-900 bg-white rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-medium text-slate-500 mb-1">Vertical (${escapeHtml(state.unit)})</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value="${escapeHtml(pt.vertical)}"
+                    placeholder="—"
+                    aria-label="${escapeHtml(pt.label)} Vertical vibration"
+                    data-action="axis-input"
+                    data-axis="vertical"
+                    data-eq-id="${eq.id}"
+                    data-pt-id="${pt.id}"
+                    class="w-full px-2.5 py-1.5 text-sm text-slate-900 bg-white rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-medium text-slate-500 mb-1">Axial (${escapeHtml(state.unit)})</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value="${escapeHtml(pt.axial)}"
+                    placeholder="—"
+                    aria-label="${escapeHtml(pt.label)} Axial vibration"
+                    data-action="axis-input"
+                    data-axis="axial"
+                    data-eq-id="${eq.id}"
+                    data-pt-id="${pt.id}"
+                    class="w-full px-2.5 py-1.5 text-sm text-slate-900 bg-white rounded-lg border border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div class="sm:col-span-1 flex justify-end no-print">
+                <button
+                  type="button"
+                  title="Remove ${escapeHtml(pt.label)} field"
+                  aria-label="Remove ${escapeHtml(pt.label)} field"
+                  data-action="remove-point"
+                  data-eq-id="${eq.id}"
+                  data-pt-id="${pt.id}"
+                  class="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          `).join('');
+
+          return `
+            <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden print-card" data-eq-id="${eq.id}">
+              <!-- Equipment Name Heading -->
+              <div class="px-5 py-4 bg-slate-50/70 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3 flex-1 min-w-[220px]">
+                  <span class="w-7 h-7 rounded-lg bg-slate-200/80 text-slate-700 text-xs font-bold flex items-center justify-center shrink-0">${eqIndex + 1}</span>
+                  <div class="flex-1">
+                    <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-0.5">Equipment Name</label>
+                    <input
+                      type="text"
+                      value="${escapeHtml(eq.name)}"
+                      placeholder="Enter Equipment Name (e.g. Cooling Water Pump P-101)"
+                      aria-label="Equipment Name"
+                      data-action="eq-name"
+                      data-eq-id="${eq.id}"
+                      class="w-full text-base sm:text-lg font-bold text-slate-900 bg-transparent border-b border-transparent hover:border-slate-300 focus:border-blue-500 focus:bg-white focus:px-2 rounded-t focus:outline-none transition py-0.5"
+                    />
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2.5">
+                  <div data-peak-badge="${eq.id}">${peakBadge}</div>
+                  ${state.equipments.length > 1 ? `
+                    <button
+                      type="button"
+                      data-action="remove-equipment"
+                      data-eq-id="${eq.id}"
+                      title="Remove equipment"
+                      aria-label="Remove equipment"
+                      class="no-print p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+
+              <!-- Vibration Fields Body -->
+              <div class="p-5 space-y-3">
+                <div class="hidden sm:grid sm:grid-cols-12 gap-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                  <div class="sm:col-span-3">Measurement Point</div>
+                  <div class="sm:col-span-8 grid grid-cols-3 gap-2.5">
+                    <div>Horizontal</div>
+                    <div>Vertical</div>
+                    <div>Axial</div>
+                  </div>
+                  <div class="sm:col-span-1 text-right no-print">Action</div>
+                </div>
+
+                <div class="space-y-2.5">
+                  ${pointsRows.length > 0 ? pointsRows : `
+                    <div class="text-center py-4 text-xs text-slate-400 border border-dashed border-slate-200 rounded-xl">
+                      No vibration fields. Click the + button below to add MDE, MNDE, PDE, PNDE, etc.
+                    </div>
+                  `}
+                </div>
+
+                <!-- Plus Sign Button to Add More Vibration Fields -->
+                <div class="pt-2 flex flex-wrap items-center justify-between gap-3 no-print">
+                  <button
+                    type="button"
+                    data-action="open-add-point"
+                    data-eq-id="${eq.id}"
+                    class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs sm:text-sm font-semibold transition cursor-pointer"
+                  >
+                    <span class="w-5 h-5 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-bold leading-none">+</span>
+                    <span>Add Vibration Field (PDE, PNDE, etc.)</span>
+                  </button>
+
+                  <div class="flex-1 min-w-[200px] max-w-md">
+                    <input
+                      type="text"
+                      value="${escapeHtml(eq.notes)}"
+                      placeholder="Optional remarks / observations..."
+                      aria-label="Equipment remarks"
+                      data-action="eq-notes"
+                      data-eq-id="${eq.id}"
+                      class="w-full px-3 py-1.5 text-xs sm:text-sm text-slate-700 bg-slate-50 rounded-lg border border-slate-200 focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+          `;
+        }).join('');
+
+        updateStats();
+      }
+
+      // Event Delegation for Equipment & Point Inputs
+      equipmentContainer.addEventListener('input', (e) => {
+        const target = e.target;
+        const action = target.dataset.action;
+        if (!action) return;
+
+        const eq = state.equipments.find((item) => item.id === target.dataset.eqId);
+        if (!eq) return;
+
+        if (action === 'eq-name') {
+          eq.name = target.value;
+          saveState();
+        } else if (action === 'eq-notes') {
+          eq.notes = target.value;
+          saveState();
+        } else if (action === 'point-label') {
+          const pt = eq.points.find((p) => p.id === target.dataset.ptId);
+          if (pt) {
+            pt.label = target.value;
+            saveState();
+            const badgeWrap = equipmentContainer.querySelector(`[data-peak-badge="${eq.id}"]`);
+            if (badgeWrap) {
+              badgeWrap.innerHTML = renderPeakBadgeHtml(eq);
+            }
+          }
+        } else if (action === 'axis-input') {
+          const pt = eq.points.find((p) => p.id === target.dataset.ptId);
+          const axis = target.dataset.axis;
+          if (pt && axis) {
+            pt[axis] = target.value;
+            saveState();
+            updateStats();
+            const badgeWrap = equipmentContainer.querySelector(`[data-peak-badge="${eq.id}"]`);
+            if (badgeWrap) {
+              badgeWrap.innerHTML = renderPeakBadgeHtml(eq);
+            }
+          }
+        }
+      });
+
+      equipmentContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        const eqId = btn.dataset.eqId;
+
+        if (action === 'open-add-point') {
+          activeEquipmentIdForModal = eqId;
+          customPointInput.value = '';
+          addPointModal.classList.remove('hidden');
+          addPointModal.classList.add('flex');
+          customPointInput.focus();
+        } else if (action === 'remove-point') {
+          const eq = state.equipments.find((item) => item.id === eqId);
+          if (eq) {
+            eq.points = eq.points.filter((p) => p.id !== btn.dataset.ptId);
+            saveState();
+            render();
+          }
+        } else if (action === 'remove-equipment') {
+          if (state.equipments.length <= 1) return;
+          state.equipments = state.equipments.filter((item) => item.id !== eqId);
+          saveState();
+          render();
+          showToast('Equipment removed');
+        }
+      });
+
+      // Top metadata listeners
+      unitSelect.addEventListener('change', () => {
+        state.unit = unitSelect.value;
+        saveState();
+        render();
+      });
+
+      dateInput.addEventListener('change', () => {
+        state.date = dateInput.value;
+        saveState();
+      });
+
+      function addNewEquipment() {
+        state.equipments.push(createDefaultEquipment());
+        saveState();
+        render();
+        showToast('Added new equipment section');
+      }
+
+      addEquipmentBtn.addEventListener('click', addNewEquipment);
+      bottomAddEquipmentBtn.addEventListener('click', addNewEquipment);
+
+      // Add Point Modal Handlers
+      function closeAddPointModal() {
+        addPointModal.classList.add('hidden');
+        addPointModal.classList.remove('flex');
+        activeEquipmentIdForModal = null;
+      }
+
+      function addVibrationPoint(label) {
+        const cleanLabel = label.trim();
+        if (!cleanLabel || !activeEquipmentIdForModal) return;
+        const eq = state.equipments.find((item) => item.id === activeEquipmentIdForModal);
+        if (!eq) return;
+
+        eq.points.push({
+          id: uid(),
+          label: cleanLabel,
+          horizontal: '',
+          vertical: '',
+          axial: ''
+        });
+        saveState();
+        closeAddPointModal();
+        render();
+        showToast(`Added ${cleanLabel} vibration field`);
+      }
+
+      quickPointChips.addEventListener('click', (e) => {
+        const chip = e.target.closest('button[data-point]');
+        if (!chip) return;
+        addVibrationPoint(chip.dataset.point);
+      });
+
+      customPointForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (!customPointInput.value.trim()) {
+          customPointInput.focus();
+          return;
+        }
+        addVibrationPoint(customPointInput.value);
+      });
+
+      closePointModalBtn.addEventListener('click', closeAddPointModal);
+      cancelPointModalBtn.addEventListener('click', closeAddPointModal);
+      addPointModal.addEventListener('click', (e) => {
+        if (e.target === addPointModal) closeAddPointModal();
+      });
+
+      // Clear All Modal Handlers
+      clearAllBtn.addEventListener('click', () => {
+        confirmClearModal.classList.remove('hidden');
+        confirmClearModal.classList.add('flex');
+      });
+
+      function closeClearModal() {
+        confirmClearModal.classList.add('hidden');
+        confirmClearModal.classList.remove('flex');
+      }
+
+      cancelClearBtn.addEventListener('click', closeClearModal);
+      confirmClearModal.addEventListener('click', (e) => {
+        if (e.target === confirmClearModal) closeClearModal();
+      });
+
+      confirmClearBtn.addEventListener('click', () => {
+        state = createInitialState();
+        saveState();
+        closeClearModal();
+        render();
+        showToast('All measurements cleared');
+      });
+
+      // Excel Table Export
+      exportExcelBtn.addEventListener('click', () => {
+        const unitLabel = state.unit;
+        const dateVal = state.date || todayISO();
+
+        const toNumOrBlank = (val) => {
+          if (val === '' || val === null || val === undefined) return '';
+          const n = parseFloat(val);
+          return Number.isNaN(n) ? '' : n;
+        };
+
+        const tableHeaders = [
+          'Sr. No.',
+          'Equipment Name',
+          'Measurement Point',
+          `Horizontal (${unitLabel})`,
+          `Vertical (${unitLabel})`,
+          `Axial (${unitLabel})`,
+          `Overall Peak (${unitLabel})`,
+          'Peak Point & Location',
+          'Remarks'
+        ];
+
+        const aoa = [
+          ['Equipment Vibration Measurement Report'],
+          ['Measurement Date', dateVal, 'Unit', unitLabel],
+          [],
+          tableHeaders
+        ];
+
+        let srNo = 1;
+        state.equipments.forEach((eq) => {
+          const eqName = eq.name.trim() || 'Unnamed Equipment';
+          const eqPeak = getEquipmentPeakInfo(eq);
+          const eqPeakVal = eqPeak ? eqPeak.value : '';
+          const eqPeakPoint = eqPeak ? `${eqPeak.pointLabel} (${eqPeak.axisLabel})` : '';
+
+          if (eq.points.length === 0) {
+            aoa.push([srNo++, eqName, '—', '', '', '', eqPeakVal, eqPeakPoint, eq.notes || '']);
+            return;
+          }
+
+          eq.points.forEach((pt, idx) => {
+            aoa.push([
+              srNo++,
+              idx === 0 ? eqName : '',
+              (pt.label || '').trim() || 'Unnamed Point',
+              toNumOrBlank(pt.horizontal),
+              toNumOrBlank(pt.vertical),
+              toNumOrBlank(pt.axial),
+              idx === 0 ? eqPeakVal : '',
+              idx === 0 ? eqPeakPoint : '',
+              idx === 0 ? (eq.notes || '') : ''
+            ]);
+          });
+        });
+
+        const filenameBase = `vibration_measurements_${dateVal}`;
+
+        if (typeof XLSX !== 'undefined') {
+          const wb = XLSX.utils.book_new();
+          const ws = XLSX.utils.aoa_to_sheet(aoa);
+          ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: tableHeaders.length - 1 } }];
+          ws['!cols'] = [
+            { wch: 8 },
+            { wch: 28 },
+            { wch: 18 },
+            { wch: 16 },
+            { wch: 15 },
+            { wch: 14 },
+            { wch: 18 },
+            { wch: 26 },
+            { wch: 26 }
+          ];
+          XLSX.utils.book_append_sheet(wb, ws, 'Vibration Log');
+          XLSX.writeFile(wb, `${filenameBase}.xlsx`);
+          showToast('Excel (.xlsx) exported');
+        } else {
+          // Fallback HTML Table .xls if SheetJS CDN is unavailable
+          const headerCells = tableHeaders.map((h) => `<th style="background:#1e40af;color:#ffffff;font-weight:bold;border:1px solid #cbd5e1;padding:6px 10px;">${escapeHtml(h)}</th>`).join('');
+          const bodyRows = aoa.slice(4).map((row) => {
+            const cells = row.map((cell) => `<td style="border:1px solid #cbd5e1;padding:5px 8px;">${escapeHtml(cell)}</td>`).join('');
+            return `<tr>${cells}</tr>`;
+          }).join('');
+          const htmlTable = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+              <head><meta charset="UTF-8" /></head>
+              <body>
+                <table>
+                  <tr><th colspan="${tableHeaders.length}" style="font-size:14pt;font-weight:bold;text-align:left;padding:8px;">Equipment Vibration Measurement Report</th></tr>
+                  <tr><td><b>Date:</b></td><td>${escapeHtml(dateVal)}</td><td><b>Unit:</b></td><td>${escapeHtml(unitLabel)}</td></tr>
+                  <tr><td colspan="${tableHeaders.length}"></td></tr>
+                  <tr>${headerCells}</tr>
+                  ${bodyRows}
+                </table>
+              </body>
+            </html>
+          `;
+          const blob = new Blob([htmlTable], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `${filenameBase}.xls`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          showToast('Excel (.xls) exported');
+        }
+      });
+
+      function getPdfExportOptions(filename) {
+        return {
+          margin: [10, 10, 10, 10],
+          filename: filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', scrollX: 0, scrollY: -window.scrollY },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+      }
+
+      // PDF Export (as visible in HTML front end)
+      exportPdfBtn.addEventListener('click', () => {
+        const dateVal = state.date || todayISO();
+        const filename = `vibration_measurements_${dateVal}.pdf`;
+
+        if (typeof html2pdf === 'undefined') {
+          window.print();
+          return;
+        }
+
+        document.body.classList.add('pdf-exporting');
+        const opt = getPdfExportOptions(filename);
+
+        html2pdf()
+          .set(opt)
+          .from(reportContent)
+          .save()
+          .then(() => {
+            document.body.classList.remove('pdf-exporting');
+            showToast('PDF downloaded');
+          })
+          .catch(() => {
+            document.body.classList.remove('pdf-exporting');
+            window.print();
+          });
+      });
+
+      function renderRecords() {
+        const q = (recordSearchInput.value || '').trim().toLowerCase();
+        const filtered = records.filter((rec) => {
+          if (!q) return true;
+          const eqNames = (rec.equipments || []).map((e) => (e.name || '').toLowerCase()).join(' ');
+          return (rec.date || '').toLowerCase().includes(q) || eqNames.includes(q);
+        });
+
+        if (filtered.length === 0) {
+          recordsList.innerHTML = `<div class="text-center py-6 text-xs sm:text-sm text-slate-400">No saved records yet. Enter measurements above and click <b>Save Record</b>.</div>`;
+          return;
+        }
+
+        recordsList.innerHTML = `
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr class="border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-500">
+                  <th class="py-2.5 px-3">Date</th>
+                  <th class="py-2.5 px-3">Equipments</th>
+                  <th class="py-2.5 px-3">Overall Peak &amp; Location</th>
+                  <th class="py-2.5 px-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                ${filtered.map((rec) => {
+                  const names = (rec.equipments || []).map((e, i) => (e.name || '').trim() || `Equipment ${i + 1}`).join(', ');
+                  const peakText = rec.overallPeak
+                    ? `${rec.overallPeak.value} ${escapeHtml(rec.unit)} @ ${escapeHtml(rec.overallPeak.equipmentName)} — ${escapeHtml(rec.overallPeak.pointLabel)} (${escapeHtml(rec.overallPeak.axisLabel)})`
+                    : '—';
+                  return `
+                    <tr class="hover:bg-slate-50/80">
+                      <td class="py-2.5 px-3 font-medium text-slate-800 whitespace-nowrap">${escapeHtml(rec.date || '—')}</td>
+                      <td class="py-2.5 px-3 text-slate-700">${escapeHtml(names)}</td>
+                      <td class="py-2.5 px-3 text-amber-800 font-medium">${peakText}</td>
+                      <td class="py-2.5 px-3 text-right whitespace-nowrap space-x-1.5">
+                        <button type="button" data-rec-action="load" data-rec-id="${rec.id}" class="px-2.5 py-1 rounded-md bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-medium transition cursor-pointer">Load</button>
+                        <button type="button" data-rec-action="delete" data-rec-id="${rec.id}" class="px-2.5 py-1 rounded-md bg-red-50 hover:bg-red-100 text-red-600 text-xs font-medium transition cursor-pointer">Delete</button>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      }
+
+      saveRecordBtn.addEventListener('click', () => {
+        const overall = getOverallPeakInfo();
+        const snapshot = {
+          id: uid(),
+          savedAt: new Date().toISOString(),
+          date: state.date || todayISO(),
+          unit: state.unit,
+          overallPeak: overall,
+          equipments: JSON.parse(JSON.stringify(state.equipments))
+        };
+
+        records.unshift(snapshot);
+        saveRecords();
+        renderRecords();
+        showToast('Record saved');
+      });
+
+      recordsList.addEventListener('click', (e) => {
+        const btn = e.target.closest('button[data-rec-action]');
+        if (!btn) return;
+        const recId = btn.dataset.recId;
+        const action = btn.dataset.recAction;
+        if (action === 'load') {
+          const rec = records.find((r) => r.id === recId);
+          if (!rec) return;
+          state.unit = rec.unit || 'mm/s';
+          state.date = rec.date || todayISO();
+          state.equipments = JSON.parse(JSON.stringify(rec.equipments || [createDefaultEquipment()]));
+          saveState();
+          render();
+          showToast('Loaded saved record');
+        } else if (action === 'delete') {
+          records = records.filter((r) => r.id !== recId);
+          saveRecords();
+          renderRecords();
+          showToast('Record deleted');
+        }
+      });
+
+      recordSearchInput.addEventListener('input', renderRecords);
+
+
+
+      // Image Export (identical A4 layout & formatting as PDF)
+      exportImageBtn.addEventListener('click', () => {
+        const dateVal = state.date || todayISO();
+        const filename = `vibration_measurements_${dateVal}.png`;
+
+        if (typeof html2pdf === 'undefined' && typeof html2canvas === 'undefined') {
+          showToast('Image export is still loading, please try again');
+          return;
+        }
+
+        document.body.classList.add('pdf-exporting');
+        const opt = getPdfExportOptions(`vibration_measurements_${dateVal}.pdf`);
+
+        const capturePromise = (typeof html2pdf !== 'undefined')
+          ? html2pdf().set(opt).from(reportContent).toCanvas().get('canvas')
+          : html2canvas(reportContent, opt.html2canvas);
+
+        capturePromise
+          .then((srcCanvas) => {
+            document.body.classList.remove('pdf-exporting');
+            const pad = Math.round(srcCanvas.width * 0.05);
+            const outCanvas = document.createElement('canvas');
+            outCanvas.width = srcCanvas.width + pad * 2;
+            outCanvas.height = srcCanvas.height + pad * 2;
+            const ctx = outCanvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, outCanvas.width, outCanvas.height);
+            ctx.drawImage(srcCanvas, pad, pad);
+
+            outCanvas.toBlob((blob) => {
+              if (!blob) {
+                showToast('Could not generate image');
+                return;
+              }
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = filename;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              URL.revokeObjectURL(url);
+              showToast('Image downloaded');
+            }, 'image/png');
+          })
+          .catch(() => {
+            document.body.classList.remove('pdf-exporting');
+            showToast('Could not generate image');
+          });
+      });
+
+      // Initial render
+      render();
+      renderRecords();
+    })();
+  </script>
+</body>
+</html>
